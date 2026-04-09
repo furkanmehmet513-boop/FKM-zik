@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+  <title>FK Zip · modern arşiv aracı</title>
+  <!-- Font Awesome (temiz ikonlar) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- JSZip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0b0f15;
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 1.5rem;
+      color: #eef2fb;
+    }
+
+    /* Inter font fallback */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap');
+
+    .app-card {
+      max-width: 780px;
+      width: 100%;
+      background: #151e2a;
+      backdrop-filter: blur(2px);
+      border-radius: 2.5rem;
+      padding: 2rem 1.8rem;
+      box-shadow: 0 25px 40px -8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(75, 130, 255, 0.15);
+      transition: box-shadow 0.2s;
+    }
+
+    h1 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      font-size: 2.2rem;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.25rem;
+      color: #ffffff;
+    }
+
+    .brand-badge {
+      background: #2e3f5e;
+      padding: 0.2rem 0.9rem;
+      border-radius: 40px;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #bdd3ff;
+      margin-left: 8px;
+    }
+
+    .sub {
+      color: #9ab3d8;
+      margin-bottom: 1.8rem;
+      font-weight: 400;
+      font-size: 1rem;
+      border-left: 3px solid #3b82f6;
+      padding-left: 1rem;
+    }
+
+    /* sürükle bırak alanı */
+    .dropzone {
+      background: #0f1822;
+      border: 2px dashed #2e4b6e;
+      border-radius: 2rem;
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 2rem;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .dropzone.dragover {
+      border-color: #3b82f6;
+      background: #14273e;
+      transform: scale(1.01);
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.2);
+    }
+
+    .dropzone i {
+      font-size: 3.2rem;
+      color: #5f8ec9;
+      margin-bottom: 12px;
+    }
+
+    .dropzone-text {
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: #cfdefa;
+    }
+
+    .dropzone-hint {
+      font-size: 0.9rem;
+      color: #809ab8;
+      margin-top: 8px;
+    }
+
+    /* dosya listesi */
+    .file-list-container {
+      background: #101a24;
+      border-radius: 1.8rem;
+      padding: 0.2rem 0;
+      margin-bottom: 1.8rem;
+      max-height: 280px;
+      overflow-y: auto;
+      border: 1px solid #253a4e;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 1.4rem;
+      border-bottom: 1px solid #1e2e40;
+      transition: background 0.15s;
+    }
+
+    .file-item:last-child {
+      border-bottom: none;
+    }
+
+    .file-item:hover {
+      background: #1b2838;
+    }
+
+    .file-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .file-icon {
+      color: #5f8ec9;
+      font-size: 1.4rem;
+      width: 1.8rem;
+      text-align: center;
+    }
+
+    .file-details {
+      overflow: hidden;
+    }
+
+    .file-name {
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 240px;
+      color: #e2ebff;
+    }
+
+    .file-size {
+      font-size: 0.8rem;
+      color: #90a9c7;
+      margin-top: 2px;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #b0c7e7;
+      font-size: 1.3rem;
+      cursor: pointer;
+      padding: 8px 10px;
+      border-radius: 40px;
+      transition: all 0.15s;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .delete-btn:hover {
+      background: #3a2e3e;
+      color: #ff8080;
+    }
+
+    /* Özelleştirme paneli */
+    .customize-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem 1.5rem;
+      margin-bottom: 2rem;
+      align-items: flex-end;
+    }
+
+    .zip-name-area {
+      flex: 2 1 240px;
+    }
+
+    .zip-name-area label {
+      display: block;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #9bb5de;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .zip-name-input {
+      width: 100%;
+      padding: 0.9rem 1.2rem;
+      background: #0f1a24;
+      border: 1.5px solid #2e4a66;
+      border-radius: 2rem;
+      font-size: 1rem;
+      color: white;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+      font-weight: 400;
+    }
+
+    .zip-name-input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
+    }
+
+    .icon-upload-area {
+      flex: 1 1 200px;
+    }
+
+    .icon-label {
+      display: block;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #9bb5de;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .icon-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #0f1a24;
+      border-radius: 3rem;
+      padding: 0.3rem 0.3rem 0.3rem 1.5rem;
+      border: 1.5px solid #2e4a66;
+    }
+
+    .icon-preview {
+      width: 44px;
+      height: 44px;
+      background: #1e3142;
+      border-radius: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 1px solid #3b5f8a;
+    }
+
+    .icon-preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .icon-preview i {
+      font-size: 1.6rem;
+      color: #6b93c5;
+    }
+
+    .icon-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-icon {
+      background: #233a52;
+      border: none;
+      color: #d6e5ff;
+      padding: 0.7rem 1.2rem;
+      border-radius: 2.5rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+      border: 1px solid #345173;
+      white-space: nowrap;
+    }
+
+    .btn-icon i {
+      font-size: 1rem;
+    }
+
+    .btn-icon:hover {
+      background: #2e4f72;
+      color: white;
+    }
+
+    .btn-remove-icon {
+      background: transparent;
+      border: 1px solid #4a3f4a;
+      color: #ccb3b3;
+      padding: 0 10px;
+      border-radius: 40px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      transition: 0.15s;
+      width: 44px;
+      height: 44px;
+    }
+
+    .btn-remove-icon:hover {
+      background: #5a3a3a;
+      color: #ffb0b0;
+    }
+
+    /* Ana aksiyon butonu */
+    .action-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn-primary {
+      background: #1d4ed8;
+      border: none;
+      padding: 1.3rem 1.8rem;
+      border-radius: 3rem;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      cursor: pointer;
+      box-shadow: 0 12px 20px -10px #1e3a8a;
+      transition: all 0.2s;
+      border: 1px solid #3b82f6;
+      letter-spacing: -0.2px;
+    }
+
+    .btn-primary i {
+      font-size: 1.4rem;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: 0 20px 25px -8px #0f2c5e;
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      background: #2c4058;
+      box-shadow: none;
+    }
+
+    .status-message {
+      min-height: 2.4rem;
+      font-size: 0.95rem;
+      color: #b3ceff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 0.5rem;
+    }
+
+    .clear-all-btn {
+      background: transparent;
+      border: 1px solid #385471;
+      color: #cbdffc;
+      padding: 0.6rem 1.2rem;
+      border-radius: 3rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: 0.15s;
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .clear-all-btn:hover {
+      background: #253e58;
+      color: white;
+    }
+
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.5rem 0.5rem 1.4rem;
+      margin-bottom: 0.2rem;
+    }
+
+    .list-header span {
+      font-weight: 500;
+      color: #b3ceff;
+    }
+
+    /* mobil ufak iyileştirmeler */
+    @media (max-width: 500px) {
+      body { padding: 0.8rem; }
+      .app-card { padding: 1.5rem 1.2rem; }
+      .dropzone { padding: 1.8rem 1rem; }
+      .file-name { max-width: 170px; }
+      .customize-row { flex-direction: column; align-items: stretch; }
+      .icon-row { padding-left: 1rem; }
+    }
+
+    /* scroll bar */
+    .file-list-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    .file-list-container::-webkit-scrollbar-track {
+      background: #0f1a24;
+      border-radius: 10px;
+    }
+    .file-list-container::-webkit-scrollbar-thumb {
+      background: #345173;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+<div class="app-card">
+  <div style="display: flex; align-items: center; justify-content: space-between;">
+    <h1>
+      <i class="fas fa-file-archive" style="color: #3b82f6;"></i> 
+      FK Zip
+      <span class="brand-badge">arşiv</span>
+    </h1>
+  </div>
+  <div class="sub">sürükle · bırak · özelleştir · indir</div>
+
+  <!-- Sürükle/Bırak Alanı -->
+  <div class="dropzone" id="dropzone">
+    <i class="fas fa-cloud-upload-alt"></i>
+    <div class="dropzone-text">Dosyaları sürükleyin veya tıklayın</div>
+    <div class="dropzone-hint">Sınırsız sayıda dosya · PNG, JPG, PDF, her şey</div>
+    <input type="file" id="fileInput" multiple style="display: none;" accept="*/*">
+  </div>
+
+  <!-- Dosya Listesi Başlık + Temizle -->
+  <div class="list-header">
+    <span><i class="far fa-folder-open" style="margin-right: 8px;"></i>Yüklenen dosyalar</span>
+    <button class="clear-all-btn" id="clearAllBtn" title="Tüm dosyaları temizle"><i class="fas fa-trash-alt"></i> Listeyi temizle</button>
+  </div>
+
+  <!-- Dosya listesi konteyner -->
+  <div class="file-list-container" id="fileListContainer">
+    <div style="padding: 1.8rem; text-align: center; color: #6b8db0;" id="emptyListMsg">
+      <i class="far fa-file" style="font-size: 1.8rem; opacity: 0.6; margin-bottom: 8px; display: block;"></i>
+      Henüz dosya eklenmedi
+    </div>
+    <div id="fileListItems"></div>
+  </div>
+
+  <!-- Özelleştirme: isim + ikon -->
+  <div class="customize-row">
+    <div class="zip-name-area">
+      <label><i class="far fa-tag"></i> ZIP dosya adı</label>
+      <input type="text" id="zipNameInput" class="zip-name-input" value="FK_Zip_Arsivi.zip" placeholder="örn: proje.zip">
+    </div>
+    <div class="icon-upload-area">
+      <div class="icon-label"><i class="far fa-image"></i> İkon (.png/.jpg)</div>
+      <div class="icon-row">
+        <div class="icon-preview" id="iconPreview">
+          <i class="far fa-file-image"></i>
+        </div>
+        <div class="icon-actions">
+          <button class="btn-icon" id="selectIconBtn"><i class="fas fa-folder-open"></i> İkon Seç</button>
+          <button class="btn-remove-icon" id="removeIconBtn" title="İkonu kaldır"><i class="fas fa-times"></i></button>
+        </div>
+        <input type="file" id="iconFileInput" accept="image/png, image/jpeg" style="display: none;">
+      </div>
+    </div>
+  </div>
+
+  <!-- Ana işlem butonu -->
+  <div class="action-wrapper">
+    <button class="btn-primary" id="createZipBtn">
+      <i class="fas fa-file-zipper"></i> ZIP Oluştur ve İndir
+    </button>
+    <div class="status-message" id="statusMessage">
+      <i class="fas fa-info-circle" style="opacity: 0.8;"></i> 
+      <span id="statusText">Hazır, dosya ve ikon ekleyin</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    "use strict";
+
+    // ---------- DOM elementleri ----------
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const fileListItemsDiv = document.getElementById('fileListItems');
+    const emptyListMsg = document.getElementById('emptyListMsg');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const zipNameInput = document.getElementById('zipNameInput');
+    const selectIconBtn = document.getElementById('selectIconBtn');
+    const iconFileInput = document.getElementById('iconFileInput');
+    const removeIconBtn = document.getElementById('removeIconBtn');
+    const iconPreview = document.getElementById('iconPreview');
+    const createZipBtn = document.getElementById('createZipBtn');
+    const statusText = document.getElementById('statusText');
+
+    // ---------- State ----------
+    let files = [];                     // { file: File, zipName: string }
+    let iconFile = null;               // Seçili ikon File
+    let iconPreviewUrl = null;         // Önizleme URL'si
+
+    // Benzersiz zip ismi oluşturmak için yardımcı (çakışma önleme)
+    function generateUniqueZipName(originalName) {
+      const existingNames = new Set(files.map(f => f.zipName));
+      let base = originalName;
+      let ext = '';
+      const lastDot = originalName.lastIndexOf('.');
+      if (lastDot > 0 && lastDot < originalName.length - 1) {
+        base = originalName.substring(0, lastDot);
+        ext = originalName.substring(lastDot);
+      } else {
+        base = originalName;
+        ext = '';
+      }
+      let candidate = originalName;
+      let counter = 1;
+      while (existingNames.has(candidate)) {
+        candidate = `${base} (${counter})${ext}`;
+        counter++;
+      }
+      return candidate;
+    }
+
+    // Dosya boyut formatla
+    function formatBytes(bytes, decimals = 1) {
+      if (bytes === 0) return '0 Bayt';
+      const k = 1024;
+      const dm = decimals < 0 ? 0 : decimals;
+      const sizes = ['Bayt', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+    }
+
+    // Listeyi render et
+    function renderFileList() {
+      if (files.length === 0) {
+        fileListItemsDiv.innerHTML = '';
+        emptyListMsg.style.display = 'block';
+        return;
+      }
+      emptyListMsg.style.display = 'none';
+      let html = '';
+      files.forEach((item, index) => {
+        const file = item.file;
+        const zipDisplayName = item.zipName;
+        html += `
+          <div class="file-item" data-index="${index}">
+            <div class="file-info">
+              <div class="file-icon"><i class="far fa-file"></i></div>
+              <div class="file-details">
+                <div class="file-name" title="${zipDisplayName}">${zipDisplayName}</div>
+                <div class="file-size">${formatBytes(file.size)}</div>
+              </div>
+            </div>
+            <button class="delete-btn" data-index="${index}" aria-label="Kaldır"><i class="fas fa-times"></i></button>
+          </div>
+        `;
+      });
+      fileListItemsDiv.innerHTML = html;
+
+      // Silme butonlarına event
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const idx = btn.getAttribute('data-index');
+          if (idx !== null) removeFileByIndex(parseInt(idx));
+        });
+      });
+    }
+
+    function removeFileByIndex(index) {
+      if (index >= 0 && index < files.length) {
+        files.splice(index, 1);
+        renderFileList();
+        updateStatus('Dosya kaldırıldı', false);
+      }
+    }
+
+    // Dosya ekleme (File array)
+    function addFiles(fileArray) {
+      if (!fileArray.length) return;
+      let addedCount = 0;
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i];
+        // benzersiz isim oluştur
+        const uniqueName = generateUniqueZipName(file.name);
+        files.push({ file, zipName: uniqueName });
+        addedCount++;
+      }
+      renderFileList();
+      updateStatus(`${addedCount} dosya eklendi.`, false);
+    }
+
+    // İkon önizleme güncelle
+    function updateIconPreview(file) {
+      if (!file) {
+        if (iconPreviewUrl) {
+          URL.revokeObjectURL(iconPreviewUrl);
+          iconPreviewUrl = null;
+        }
+        iconPreview.innerHTML = '<i class="far fa-file-image"></i>';
+        iconFile = null;
+        return;
+      }
+      iconFile = file;
+      if (iconPreviewUrl) URL.revokeObjectURL(iconPreviewUrl);
+      iconPreviewUrl = URL.createObjectURL(file);
+      iconPreview.innerHTML = `<img src="${iconPreviewUrl}" alt="icon preview">`;
+    }
+
+    // Tüm state temizle (dosyalar + ikon)
+    function clearAll(keepIcon = false) {
+      files = [];
+      renderFileList();
+      if (!keepIcon) {
+        if (iconFile) {
+          updateIconPreview(null);
+        }
+      }
+      updateStatus('Liste temizlendi', false);
+    }
+
+    // Durum mesajı
+    function updateStatus(msg, isError = false) {
+      statusText.textContent = msg;
+      const icon = document.querySelector('#statusMessage i');
+      if (isError) {
+        icon.className = 'fas fa-exclamation-circle';
+        statusText.style.color = '#fbaa9a';
+      } else {
+        icon.className = 'fas fa-info-circle';
+        statusText.style.color = '#b3ceff';
+      }
+    }
+
+    // ----- ZIP oluştur ve indir -----
+    async function generateAndDownload() {
+      // validasyon: en az bir dosya veya ikon olmalı
+      if (files.length === 0 && !iconFile) {
+        updateStatus('ZIP oluşturmak için en az bir dosya veya ikon ekleyin.', true);
+        return;
+      }
+
+      // Buton disable
+      createZipBtn.disabled = true;
+      const originalBtnHtml = createZipBtn.innerHTML;
+      createZipBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> ZIP hazırlanıyor...';
+
+      try {
+        const zip = new JSZip();
+
+        // 1) Tüm dosyaları ekle
+        const filePromises = files.map(async (item) => {
+          const arrayBuf = await item.file.arrayBuffer();
+          return { name: item.zipName, data: arrayBuf };
+        });
+
+        const fileContents = await Promise.all(filePromises);
+        for (let fc of fileContents) {
+          zip.file(fc.name, fc.data);
+        }
+
+        // 2) İkon varsa icon.png olarak ekle (üzerine yazma kabul edilir)
+        if (iconFile) {
+          const iconBuffer = await iconFile.arrayBuffer();
+          zip.file("icon.png", iconBuffer);
+        }
+
+        // 3) Zip adını düzenle (.zip yoksa ekle)
+        let zipFileName = zipNameInput.value.trim();
+        if (zipFileName === '') zipFileName = 'FK_Zip_Arsivi.zip';
+        if (!zipFileName.toLowerCase().endsWith('.zip')) {
+          zipFileName += '.zip';
+        }
+
+        updateStatus('ZIP oluşturuluyor, lütfen bekleyin...', false);
+
+        // 4) Blob oluştur
+        const blob = await zip.generateAsync({ type: "blob" }, (metadata) => {
+          // opsiyonel progress (isteğe bağlı)
+        });
+
+        // 5) İndirme başlat
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = zipFileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        updateStatus(`✅ "${zipFileName}" başarıyla oluşturuldu, indirme başladı.`, false);
+      } catch (error) {
+        console.error(error);
+        updateStatus('❌ ZIP oluşturulurken hata: ' + error.message, true);
+      } finally {
+        createZipBtn.disabled = false;
+        createZipBtn.innerHTML = originalBtnHtml;
+      }
+    }
+
+    // ----- Event listeners -----
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+      if (fileInput.files.length) {
+        addFiles(Array.from(fileInput.files));
+        fileInput.value = ''; // aynı dosya tekrar seçilebilsin
+      }
+    });
+
+    // Sürükle bırak
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => {
+      dropzone.classList.remove('dragover');
+    });
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      const dt = e.dataTransfer;
+      if (dt.files.length) {
+        addFiles(Array.from(dt.files));
+      }
+    });
+
+    // Temizle butonu
+    clearAllBtn.addEventListener('click', () => {
+      clearAll(false);  // ikonu da temizle
+    });
+
+    // İkon seçme
+    selectIconBtn.addEventListener('click', () => iconFileInput.click());
+    iconFileInput.addEventListener('change', (e) => {
+      const file = iconFileInput.files[0];
+      if (file) {
+        if (!['image/png', 'image/jpeg'].includes(file.type)) {
+          updateStatus('Lütfen PNG veya JPG seçin.', true);
+          iconFileInput.value = '';
+          return;
+        }
+        updateIconPreview(file);
+        updateStatus('İkon eklendi (ZIP içinde icon.png)', false);
+      }
+      iconFileInput.value = '';
+    });
+
+    removeIconBtn.addEventListener('click', () => {
+      if (iconFile) {
+        updateIconPreview(null);
+        updateStatus('İkon kaldırıldı', false);
+      } else {
+        updateStatus('Zaten ikon seçili değil', false);
+      }
+    });
+
+    // ZIP oluştur butonu
+    createZipBtn.addEventListener('click', generateAndDownload);
+
+    // Silme işlemi için event delegation (dinamik). Zaten renderda ekliyoruz, ancak yedek
+    // Başlangıç render
+    renderFileList();
+
+    // Küçük ek: inputa varsayılan isim ama kullanıcı değiştirebilir.
+    // İkon önizleme boşken düzgün.
+  })();
+</script>
+</body>
+</html>
